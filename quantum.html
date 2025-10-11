@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Melodies - AI Music Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #4a148c 0%, #1a237e 50%, #311b92 100%);
+            min-height: 100vh;
+            color: white;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .header h1 {
+            font-size: 3rem;
+            background: linear-gradient(135deg, #ce93d8 0%, #f48fb1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .header p {
+            font-size: 1.25rem;
+            color: #ce93d8;
+        }
+        .icon {
+            width: 48px;
+            height: 48px;
+            color: #ce93d8;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+        textarea, select, input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 0.5rem;
+            color: white;
+            font-size: 1rem;
+            font-family: inherit;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        textarea::placeholder {
+            color: #ce93d8;
+        }
+        textarea:focus, select:focus, input:focus {
+            outline: none;
+            border-color: #ce93d8;
+            box-shadow: 0 0 0 2px rgba(206, 147, 216, 0.3);
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        .btn {
+            width: 100%;
+            padding: 1rem;
+            font-size: 1.125rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #9c27b0 0%, #e91e63 100%);
+            color: white;
+        }
+        .btn-primary:hover:not(:disabled) {
+            transform: scale(1.05);
+            box-shadow: 0 8px 16px rgba(156, 39, 176, 0.4);
+        }
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid white;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .player-card {
+            background: linear-gradient(135deg, rgba(156, 39, 176, 0.2) 0%, rgba(233, 30, 99, 0.2) 100%);
+            border-color: rgba(206, 147, 216, 0.3);
+        }
+        .player-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .player-title h3 {
+            font-size: 1.5rem;
+            margin-bottom: 0.25rem;
+        }
+        .player-meta {
+            color: #ce93d8;
+            font-size: 0.875rem;
+        }
+        .player-controls {
+            display: flex;
+            gap: 0.75rem;
+        }
+        .btn-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s;
+        }
+        .btn-icon:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        .btn-icon svg {
+            width: 24px;
+            height: 24px;
+            color: white;
+        }
+        .progress-bar {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #ce93d8;
+            font-size: 0.875rem;
+        }
+        .progress {
+            flex: 1;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ce93d8 0%, #f48fb1 100%);
+            width: 33%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .track-list {
+            margin-top: 1.5rem;
+        }
+        .track-item {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .track-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(4px);
+        }
+        .track-info h4 {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        .track-info p {
+            font-size: 0.875rem;
+            color: #ce93d8;
+        }
+        .btn-play {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #9c27b0;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s;
+        }
+        .btn-play:hover {
+            background: #7b1fa2;
+        }
+        .btn-play svg {
+            width: 16px;
+            height: 16px;
+            color: white;
+        }
+        select option {
+            background: #1a237e;
+            color: white;
+        }
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            .player-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-content">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                </svg>
+                <h1>Quantum Melodies</h1>
+            </div>
+            <p>AI-Powered Music Generation with Quantum Randomness</p>
+        </div>
+
+        <!-- Generation Form -->
+        <div class="card">
+            <div class="form-group">
+                <label for="prompt">Describe your music</label>
+                <textarea id="prompt" placeholder="e.g., Uplifting electronic melody with dreamy vibes..."></textarea>
+            </div>
+            <div class="grid">
+                <div class="form-group">
+                    <label for="genre">Genre</label>
+                    <select id="genre">
+                        <option value="electronic">Electronic</option>
+                        <option value="ambient">Ambient</option>
+                        <option value="classical">Classical</option>
+                        <option value="jazz">Jazz</option>
+                        <option value="experimental">Experimental</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="mood">Mood</label>
+                    <select id="mood">
+                        <option value="uplifting">Uplifting</option>
+                        <option value="calm">Calm</option>
+                        <option value="energetic">Energetic</option>
+                        <option value="dark">Dark</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="duration">Duration (seconds)</label>
+                    <input type="number" id="duration" value="30" min="10" max="120">
+                </div>
+                <div class="form-group">
+                    <label for="quantumMode">Quantum Mode</label>
+                    <input type="checkbox" id="quantumMode">
+                </div>
+            </div>
+            <button id="generateBtn" class="btn btn-primary">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M15 4V2m0 14v-2M8 9h11m-11 4h11M3 9l3-3 3 3M3 15l3 3 3-3"/>
+                </svg>
+                Generate Music
+            </button>
+        </div>
+
+        <!-- Current Track Player -->
+        <div id="playerCard" class="card player-card" style="display: none;">
+            <div class="player-header">
+                <div class="player-title">
+                    <h3 id="trackTitle">Track Title</h3>
+                    <p class="player-meta" id="trackMeta">Genre • Mood • Duration</p>
+                </div>
+                <div class="player-controls">
+                    <button id="playBtn" class="btn-icon">
+                        <svg id="playIcon" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                        </svg>
+                        <svg id="pauseIcon" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="display: none;">
+                            <rect x="6" y="4" width="4" height="16"></rect>
+                            <rect x="14" y="4" width="4" height="16"></rect>
+                        </svg>
+                    </button>
+                    <button id="stopBtn" class="btn-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 4v6h6M23 20v-6h-6"/>
+                            <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="progress-bar">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                </svg>
+                <div class="progress">
+                    <div class="progress-fill"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Track History -->
+        <div id="historyCard" class="card" style="display: none;">
+            <h3 class="section-title">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 18V5l12-2v13M9 13l12-2"/>
+                    <circle cx="6" cy="18" r="3"/>
+                    <circle cx="18" cy="16" r="3"/>
+                </svg>
+                Recent Generations
+            </h3>
+            <div id="trackList" class="track-list"></div>
+        </div>
+    </div>
+
+    <script>
+        // Audio Engine
+        let synth = null;
+        let sequence = null;
+        let isPlaying = false;
+        let currentTrack = null;
+        let generatedTracks = [];
+
+        // Initialize Tone.js
+        function initAudio() {
+            if (!synth) {
+                synth = new Tone.PolySynth(Tone.Synth, {
+                    oscillator: { type: 'sine' },
+                    envelope: {
+                        attack: 0.05,
+                        decay: 0.3,
+                        sustain: 0.4,
+                        release: 1
+                    }
+                }).toDestination();
+            }
+        }
+
+        // Fetch quantum random numbers from ANU QRNG API
+        async function getQuantumRandomNumber() {
+            try {
+                const response = await fetch('https://qrng.anu.edu.au/API/jsonI.php?length=1&type=uint8');
+                const data = await response.json();
+                return data.data[0] / 255; // Normalize to [0, 1]
+            } catch (error) {
+                console.error("Failed to fetch quantum randomness. Falling back to classical randomness.", error);
+                return Math.random(); // Fallback to classical randomness
+            }
+        }
+
+        // Scales and Presets
+        const scales = {
+            major: [0, 2, 4, 5, 7, 9, 11],
+            minor: [0, 2, 3, 5, 7, 8, 10],
+            pentatonic: [0, 2, 4, 7, 9],
+            blues: [0, 3, 5, 6, 7, 10],
+            chromatic: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+        };
+
+        const genrePresets = {
+            electronic: { scale: 'minor', tempo: 128 },
+            ambient: { scale: 'pentatonic', tempo: 80 },
+            classical: { scale: 'major', tempo: 100 },
+            jazz: { scale: 'blues', tempo: 120 },
+            experimental: { scale: 'chromatic', tempo: 140 }
+        };
+
+        // Generate Melody
+        async function generateMelody(genre, mood, duration) {
+            const useQuantum = document.getElementById('quantumMode').checked;
+            const preset = genrePresets[genre];
+            const scale = scales[preset.scale];
+            const baseNote = 60;
+            const numNotes = Math.floor(duration / 0.5);
+
+            const melody = [];
+            for (let i = 0; i < numNotes; i++) {
+                let scaleIndex;
+                if (useQuantum) {
+                    scaleIndex = Math.floor(await getQuantumRandomNumber() * scale.length);
+                } else {
+                    scaleIndex = Math.floor(Math.random() * scale.length);
+                }
+
+                const octaveShift = Math.floor(Math.random() * 3) - 1;
+                const note = baseNote + scale[scaleIndex] + (octaveShift * 12);
+
+                let velocity;
+                switch(mood) {
+                    case 'uplifting': velocity = 0.8 + Math.random() * 0.2; break;
+                    case 'calm': velocity = 0.3 + Math.random() * 0.3; break;
+                    case 'energetic': velocity = 0.9 + Math.random() * 0.1; break;
+                    default: velocity = 0.5 + Math.random() * 0.3;
+                }
+
+                melody.push({
+                    note: Tone.Frequency(note, 'midi').toNote(),
+                    time: i * 0.5,
+                    duration: '8n',
+                    velocity
+                });
+            }
+
+            return melody;
+        }
+
+        // Play Track
+        async function playTrack(track) {
+            await Tone.start();
+            initAudio();
+
+            if (isPlaying) {
+                Tone.Transport.stop();
+                if (sequence) {
+                    sequence.stop();
+                    sequence.dispose();
+                }
+                isPlaying = false;
+                updatePlayButton(false);
+                return;
+            }
+
+            const preset = genrePresets[track.genre];
+            Tone.Transport.bpm.value = preset.tempo;
+            sequence = new Tone.Part((time, note) => {
+                synth.triggerAttackRelease(
+                    note.note,
+                    note.duration,
+                    time,
+                    note.velocity
+                );
+            }, track.melody);
+            sequence.start(0);
+            sequence.loop = true;
+            sequence.loopEnd = track.duration;
+
+            Tone.Transport.start();
+            isPlaying = true;
+            updatePlayButton(true);
+        }
+
+        // Stop Playback
+        function stopPlayback() {
+            Tone.Transport.stop();
+            if (sequence) {
+                sequence.stop();
+            }
+            isPlaying = false;
+            updatePlayButton(false);
+        }
+
+        // Update Play Button
+        function updatePlayButton(playing) {
+            const playIcon = document.getElementById('playIcon');
+            const pauseIcon = document.getElementById('pauseIcon');
+            if (playing) {
+                playIcon.style.display = 'none';
+                pauseIcon.style.display = 'block';
+            } else {
+                playIcon.style.display = 'block';
+                pauseIcon.style.display = 'none';
+            }
+        }
+
+        // Update Player UI
+        function updatePlayer(track) {
+            document.getElementById('playerCard').style.display = 'block';
+            document.getElementById('trackTitle').textContent = track.title;
+            document.getElementById('trackMeta').textContent =
+                `${track.genre} • ${track.mood} • ${track.duration}s`;
+        }
+
+        // Add Track to History
+        function addToHistory(track) {
+            generatedTracks.unshift(track);
+            if (generatedTracks.length > 5) generatedTracks.pop();
+
+            const historyCard = document.getElementById('historyCard');
+            const trackList = document.getElementById('trackList');
+
+            historyCard.style.display = 'block';
+            trackList.innerHTML = '';
+
+            generatedTracks.forEach(t => {
+                const trackItem = document.createElement('div');
+                trackItem.className = 'track-item';
+                trackItem.innerHTML = `
+                    <div class="track-info">
+                        <h4>${t.title}</h4>
+                        <p>${t.timestamp} • ${t.genre} • ${t.mood}</p>
+                    </div>
+                    <button class="btn-play" onclick="loadTrack(${t.id})">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                        </svg>
+                    </button>
+                `;
+                trackList.appendChild(trackItem);
+            });
+        }
+
+        // Load Track
+        window.loadTrack = function(id) {
+            const track = generatedTracks.find(t => t.id === id);
+            if (track) {
+                stopPlayback();
+                currentTrack = track;
+                updatePlayer(track);
+            }
+        };
+
+        // Generate Button Handler
+        document.getElementById('generateBtn').addEventListener('click', async function() {
+            const btn = this;
+            const prompt = document.getElementById('prompt').value;
+            const genre = document.getElementById('genre').value;
+            const mood = document.getElementById('mood').value;
+            const duration = parseInt(document.getElementById('duration').value);
+            const useQuantum = document.getElementById('quantumMode').checked;
+
+            btn.disabled = true;
+            btn.innerHTML = `
+                <div class="spinner"></div>
+                ${useQuantum ? 'Fetching Quantum Randomness...' : 'Generating Melody...'}
+            `;
+
+            await Tone.start();
+
+            setTimeout(async () => {
+                const melody = await generateMelody(genre, mood, duration);
+                const track = {
+                    id: Date.now(),
+                    title: prompt || `${genre} ${mood} melody`,
+                    melody,
+                    genre,
+                    mood,
+                    duration,
+                    timestamp: new Date().toLocaleTimeString()
+                };
+
+                currentTrack = track;
+                updatePlayer(track);
+                addToHistory(track);
+
+                btn.disabled = false;
+                btn.innerHTML = `
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M15 4V2m0 14v-2M8 9h11m-11 4h11M3 9l3-3 3 3M3 15l3 3 3-3"/>
+                    </svg>
+                    Generate Music
+                `;
+            }, 2000);
+        });
+
+        // Play Button Handler
+        document.getElementById('playBtn').addEventListener('click', function() {
+            if (currentTrack) {
+                playTrack(currentTrack);
+            }
+        });
+
+        // Stop Button Handler
+        document.getElementById('stopBtn').addEventListener('click', stopPlayback);
+    </script>
+</body>
+</html>
